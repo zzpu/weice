@@ -27,6 +27,7 @@ func htmlHandler(w http.ResponseWriter, r *http.Request) {
 		userid := r.FormValue("userid")
 		msg := r.FormValue("msg")
 		u, ok := us[userid]
+
 		if ok && msg != "" {
 			err = SendMsg(userid, msg)
 			if err != nil {
@@ -43,7 +44,7 @@ func htmlHandler(w http.ResponseWriter, r *http.Request) {
 	n := 1
 	w.Header().Set("content-type", "text/html; charset=utf-8")
 	for _, u := range us {
-		if u.Sex != 0 {
+		if u.NickName =="小冰" {
 			name := u.RemarkName
 			if name == "" {
 				name = u.NickName
@@ -79,6 +80,7 @@ func sendHandler(w http.ResponseWriter, r *http.Request) {
 	var u *User
 	var ok bool
 	userid := r.FormValue("userid")
+
 	u, ok = us[userid]
 	if !ok {
 		http.Error(w, "no such user", http.StatusInternalServerError)
@@ -90,6 +92,7 @@ func sendHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "msg empty", http.StatusInternalServerError)
 		return
 	}
+
 	err = SendMsg(u.UserName, msg)
 	if err == nil {
 		fmt.Fprintf(w, "send msg to %s success!", u.NickName)

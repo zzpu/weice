@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"runtime"
+	"os/exec"
 )
 
 var (
@@ -22,6 +24,8 @@ var (
 	ErrNotLogin          = errors.New("Not Login")
 	ErrLoginTimeout      = errors.New("Login Timeout")
 	ErrWaitingForConfirm = errors.New("Waiting For Confirm")
+	xiaobing string
+	xiaodong string
 )
 
 type Weixin struct {
@@ -81,10 +85,28 @@ func (wx *Weixin) getUuid() (string, error) {
 		return "", fmt.Errorf("get uuid error, response: %s", b)
 	}
 }
+var commands = map[string]string{
+	"windows": "cmd /c start",
+	"darwin":  "open",
+	"linux":   "xdg-open",
+}
 
+var Version = "0.1.0"
+
+// Open calls the OS default program for uri
+func Open(uri string) error {
+	run, ok := commands[runtime.GOOS]
+	if !ok {
+		return fmt.Errorf("don't know how to open things on %s platform", runtime.GOOS)
+	}
+
+	cmd := exec.Command(run, uri)
+	return cmd.Start()
+}
 func (wx *Weixin) ShowQRcodeUrl(uuid string) error {
 	uri := fmt.Sprintf("%s/qrcode/%s", LoginUri, uuid)
-	log.Println("Please open link in browser: " + uri)
+	//log.Println("Please open link in browser: " + uri)
+	Open(uri)
 	return nil
 }
 
@@ -278,7 +300,9 @@ func (wx *Weixin) GetContacts() error {
 		return err
 	}
 	var r ContactResponse
+
 	err = json.Unmarshal(b, &r)
+
 	if err != nil {
 		return err
 	}
@@ -293,6 +317,12 @@ func (wx *Weixin) GetContacts() error {
 func (wx *Weixin) updateContacts(us []*User) error {
 	for _, u := range us {
 		wx.contacts[u.UserName] = u
+		if u.NickName == "小冰" {
+			xiaobing = u.UserName
+		}else if u.RemarkName == "小栋" {
+			xiaodong = u.UserName
+		}
+
 	}
 	b, err := json.Marshal(us)
 	if err != nil {
@@ -410,6 +440,18 @@ func (wx *Weixin) SendMsg(userName, msg string) error {
 func (wx *Weixin) HandleMsg(m *Message) {
 	if m.MsgType == 1 { // 文本消息
 		log.Printf("%s: %s", wx.GetUserName(m.FromUserName), m.Content)
+		if wx.GetUserName(m.FromUserName) == "小冰"{
+			err := wx.SendMsg(xiaodong,m.Content)
+			if err!=nil{
+				log.Printf("err: %s", err.Error())
+			}
+		}else if wx.GetUserName(m.FromUserName) == "小栋"{
+			err := wx.SendMsg(xiaobing,m.Content)
+			if err!=nil{
+				log.Printf("err: %s", err.Error())
+			}
+		}
+		//log.Printf("%s: %s", m.FromUserName, m.Content)
 	} else if m.MsgType == 3 { // 图片消息
 	} else if m.MsgType == 34 { // 语音消息
 	} else if m.MsgType == 43 { // 表情消息
